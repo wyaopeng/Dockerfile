@@ -1,0 +1,51 @@
+1.
+docker run -d -p 3000:3000 --name grafana grafana/grafana 
+2.
+docker run \
+  -d \
+  -p 3000:3000 \
+  --name=grafana \
+  -e "GF_SERVER_ROOT_URL=http://grafana.server.name" \
+  -e "GF_SECURITY_ADMIN_PASSWORD=secret" \
+  grafana/grafana
+---ENV 
+Setting	Default value
+GF_PATHS_CONFIG	/etc/grafana/grafana.ini
+GF_PATHS_DATA	/var/lib/grafana
+GF_PATHS_HOME	/usr/share/grafana
+GF_PATHS_LOGS	/var/log/grafana
+GF_PATHS_PLUGINS	/var/lib/grafana/plugins
+GF_PATHS_PROVISIONING	/etc/grafana/provisioning
+3/
+# create a persistent volume for your data in /var/lib/grafana (database and plugins)
+docker volume create grafana-storage
+
+# start grafana
+docker run \
+  -d \
+  -p 3000:3000 \
+  --name=grafana \
+  -v grafana-storage:/var/lib/grafana \
+  grafana/grafana
+
+4.
+mkdir data # creates a folder for your data
+ID=$(id -u) # saves your user id in the ID variable
+
+# starts grafana with your user id and using the data folder
+docker run -d --user $ID --volume "$PWD/data:/var/lib/grafana" -p 3000:3000 grafana/grafana:5.1.0
+
+Version	User	User ID
+< 5.1	grafana	104
+>= 5.1	grafana	472
+5.
+docker pull grafana
+docker stop my-grafana-container
+docker rm my-grafana-container
+docker run --name=my-grafana-container --restart=always -v /var/lib/grafana:/var/lib/grafana
+
+
+guanwang:https://grafana.com/docs/installation/docker/
+
+
+

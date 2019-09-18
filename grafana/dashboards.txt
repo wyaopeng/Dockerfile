@@ -1,0 +1,3 @@
+Dashboard Servers Linux:https://grafana.com/grafana/dashboards/8677
+Zabbix - Full Server Status:https://grafana.com/grafana/dashboards/5363
+https://grafana.com/grafana/dashboards/2292
