@@ -1,0 +1,100 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-contract
+  labels:
+    app: com-contract
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-contract
+  template:
+    metadata:
+      labels:
+        app: com-contract
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: com-contract
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-contract
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-contract-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-contract-catalina
+        - mountPath: /data/laser/config/paas/com-contract/laser.properties
+          name: com-contract-config
+          subPath: laser.properties
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-contract-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-contract-context
+        - mountPath: /data/logs/laser/paas/com-contract
+          name: com-contract-log
+        - mountPath: /usr/local/tomcat/logs
+          name: com-contract-catalinalog
+        - mountPath: /usr/local/tomcat/lib/mysql-connector-java-5.1.32.jar
+          name: com-contract-mysql-lib
+        ports:
+        - containerPort: 804
+        readinessProbe:
+          tcpSocket:
+            port: 804
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 804
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: com-contract-cache
+        configMap:
+          name: cache.properties
+      - name: com-contract-catalina
+        hostPath:
+          path: /data/project/paas/java/com/com-contract/catalina.sh
+      - name: com-contract-config
+        configMap:
+          name: com-contract.properties
+      - name: com-contract-server
+        hostPath:
+          path: /data/project/paas/java/com/com-contract/server.xml
+      - name: com-contract-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: com-contract-log
+        hostPath:
+          path: /log/paas/java/com-contract/app/
+      - name: com-contract-catalinalog
+        hostPath:
+          path: /log/paas/java/com-contract/tomcat/
+      - name: com-contract-mysql-lib
+        hostPath:
+          path: /data/project/paas/java/com/mysql-connector-java-5.1.32.jar
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-contract
+spec:
+  ports:
+    - port: 804
+      protocol: TCP
+      nodePort: 3804
+  clusterIP: 10.68.21.4
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: com-contract

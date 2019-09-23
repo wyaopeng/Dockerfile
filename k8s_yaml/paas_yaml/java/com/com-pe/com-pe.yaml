@@ -1,0 +1,100 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-pe
+  labels:
+    app: com-pe
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-pe
+  template:
+    metadata:
+      labels:
+        app: com-pe
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: com-pe
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-pe
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-pe-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-pe-catalina
+        - mountPath: /data/laser/config/paas/com-pe/laser.properties
+          name: com-pe-config
+          subPath: laser.properties
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-pe-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-pe-context
+        - mountPath: /data/logs/laser/paas/com-pe
+          name: com-pe-log
+        - mountPath: /usr/local/tomcat/logs
+          name: com-pe-catalinalog
+        - mountPath: /usr/local/tomcat/lib/mysql-connector-java-5.1.32.jar
+          name: com-pe-mysql-lib
+        ports:
+        - containerPort: 8017
+        readinessProbe:
+          tcpSocket:
+            port: 8017
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 8017
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: com-pe-cache
+        configMap:
+          name: cache.properties
+      - name: com-pe-catalina
+        hostPath:
+          path: /data/project/paas/java/com/com-pe/catalina.sh
+      - name: com-pe-config
+        configMap:
+          name: com-pe.properties
+      - name: com-pe-server
+        hostPath:
+          path: /data/project/paas/java/com/com-pe/server.xml
+      - name: com-pe-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: com-pe-log
+        hostPath:
+          path: /log/paas/java/com-pe/app/
+      - name: com-pe-catalinalog
+        hostPath:
+          path: /log/paas/java/com-pe/tomcat/
+      - name: com-pe-mysql-lib
+        hostPath:
+          path: /data/project/paas/java/com/mysql-connector-java-5.1.32.jar
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-pe
+spec:
+  ports:
+    - port: 8017
+      protocol: TCP
+      nodePort: 38017
+  clusterIP: 10.68.21.17
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: com-pe

@@ -1,0 +1,74 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-es2
+  labels:
+    app: com-es2
+spec:
+  minReadySeconds: 60
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-es2
+  template:
+    metadata:
+      labels:
+        app: com-es2
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node2: worker2
+      containers:
+      - name: com-es2
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-es
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-es2-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-es2-catalina
+        - mountPath: /data/laser/config/paas/com-es/laser.properties
+          name: com-es2-config
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-es2-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-es2-context
+        ports:
+        - containerPort: 807
+      volumes:
+      - name: com-es2-cache
+        configMap:
+          name: cache.properties
+      - name: com-es2-catalina
+        hostPath:
+          path: /data/project/paas/java/com2/com-es2/catalina.sh
+      - name: com-es2-config
+        hostPath:
+          path: /data/project/paas/java/com2/com-es2/laser.properties
+      - name: com-es2-server
+        hostPath:
+          path: /data/project/paas/java/com2/com-es2/server.xml
+      - name: com-es2-context
+        hostPath:
+          path: /data/project/paas/java/com2/com-es2/context.xml
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-es2
+spec:
+  ports:
+    - port: 807
+      protocol: TCP
+  clusterIP: 10.68.22.7
+  type: NodePort
+  selector:
+    app: com-es2

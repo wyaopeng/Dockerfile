@@ -1,0 +1,100 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-bank
+  labels:
+    app: com-bank
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-bank
+  template:
+    metadata:
+      labels:
+        app: com-bank
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: com-bank
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-bank
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-bank-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-bank-catalina
+        - mountPath: /data/laser/config/paas/com-bank/laser.properties
+          name: com-bank-config
+          subPath: laser.properties
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-bank-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-bank-context
+        - mountPath: /data/logs/laser/paas/com-bank
+          name: com-bank-log
+        - mountPath: /usr/local/tomcat/logs
+          name: com-bank-catalinalog
+        - mountPath: /usr/local/tomcat/lib/mysql-connector-java-5.1.32.jar
+          name: com-bank-mysql-lib
+        ports:
+        - containerPort: 801
+        readinessProbe:
+          tcpSocket:
+            port: 801
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 801
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: com-bank-cache
+        configMap:
+          name: cache.properties
+      - name: com-bank-catalina
+        hostPath:
+          path: /data/project/paas/java/com/com-bank/catalina.sh
+      - name: com-bank-config
+        configMap:
+          name: com-bank.properties
+      - name: com-bank-server
+        hostPath:
+          path: /data/project/paas/java/com/com-bank/server.xml
+      - name: com-bank-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: com-bank-log
+        hostPath:
+          path: /log/paas/java/com-bank/app/
+      - name: com-bank-catalinalog
+        hostPath:
+          path: /log/paas/java/com-bank/tomcat/
+      - name: com-bank-mysql-lib
+        hostPath:
+          path: /data/project/paas/java/com/mysql-connector-java-5.1.32.jar
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-bank
+spec:
+  ports:
+    - port: 801
+      protocol: TCP
+      nodePort: 3801
+  clusterIP: 10.68.21.1
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: com-bank

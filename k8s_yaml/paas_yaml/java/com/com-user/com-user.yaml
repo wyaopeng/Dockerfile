@@ -1,0 +1,100 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-user
+  labels:
+    app: com-user
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-user
+  template:
+    metadata:
+      labels:
+        app: com-user
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: com-user
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-user
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-user-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-user-catalina
+        - mountPath: /data/laser/config/paas/com-user/laser.properties
+          name: com-user-config
+          subPath: laser.properties
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-user-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-user-context
+        - mountPath: /data/logs/laser/paas/com-user
+          name: com-user-log
+        - mountPath: /usr/local/tomcat/logs
+          name: com-user-catalinalog
+        - mountPath: /usr/local/tomcat/lib/mysql-connector-java-5.1.32.jar
+          name: com-user-mysql-lib
+        ports:
+        - containerPort: 8019
+        readinessProbe:
+          tcpSocket:
+            port: 8019
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 8019
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: com-user-cache
+        configMap:
+          name: cache.properties
+      - name: com-user-catalina
+        hostPath:
+          path: /data/project/paas/java/com/com-user/catalina.sh
+      - name: com-user-config
+        configMap:
+          name: com-user.properties
+      - name: com-user-server
+        hostPath:
+          path: /data/project/paas/java/com/com-user/server.xml
+      - name: com-user-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: com-user-log
+        hostPath:
+          path: /log/paas/java/com-user/app/
+      - name: com-user-catalinalog
+        hostPath:
+          path: /log/paas/java/com-user/tomcat/
+      - name: com-user-mysql-lib
+        hostPath:
+          path: /data/project/paas/java/com/mysql-connector-java-5.1.32.jar
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-user
+spec:
+  ports:
+    - port: 8019
+      protocol: TCP
+      nodePort: 38019
+  clusterIP: 10.68.21.19
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: com-user

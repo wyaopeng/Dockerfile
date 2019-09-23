@@ -1,0 +1,74 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: controller-contract2
+  labels:
+    app: controller-contract2
+spec:
+  minReadySeconds: 60
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 
+  replicas: 1
+  selector:
+    matchLabels:
+      app: controller-contract2
+  template:
+    metadata:
+      labels:
+        app: controller-contract2
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node2: worker2
+      containers:
+      - name: controller-contract2
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/controller-contract
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: controller-contract2-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: controller-contract2-catalina
+        - mountPath: /data/laser/config/paas/controller-contract/laser.properties
+          name: controller-contract2-config
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: controller-contract2-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: controller-contract2-context
+        ports:
+        - containerPort: 8026
+      volumes:
+      - name: controller-contract2-cache
+        configMap:
+          name: cache.properties
+      - name: controller-contract2-catalina
+        hostPath:
+          path: /data/project/paas/java/com2/controller-contract2/catalina.sh
+      - name: controller-contract2-config
+        hostPath:
+          path: /data/project/paas/java/com2/controller-contract2/laser.properties
+      - name: controller-contract2-server
+        hostPath:
+          path: /data/project/paas/java/com2/controller-contract2/server.xml
+      - name: controller-contract2-context
+        hostPath:
+          path: /data/project/paas/java/com2/controller-contract2/context.xml
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: controller-contract2
+spec:
+  ports:
+    - port: 8026
+      protocol: TCP
+  clusterIP: 10.68.22.26
+  type: NodePort
+  selector:
+    app: controller-contract2

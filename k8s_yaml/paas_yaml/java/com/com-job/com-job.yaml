@@ -1,0 +1,100 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-job
+  labels:
+    app: com-job
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-job
+  template:
+    metadata:
+      labels:
+        app: com-job
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: com-job
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-job
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-job-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-job-catalina
+        - mountPath: /data/laser/config/paas/com-job/laser.properties
+          name: com-job-config
+          subPath: laser.properties
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-job-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-job-context
+        - mountPath: /data/logs/laser/paas/com-job
+          name: com-job-log
+        - mountPath: /usr/local/tomcat/logs
+          name: com-job-catalinalog
+        - mountPath: /usr/local/tomcat/lib/mysql-connector-java-5.1.32.jar
+          name: com-job-mysql-lib
+        ports:
+        - containerPort: 8012
+        readinessProbe:
+          tcpSocket:
+            port: 8012
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 8012
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: com-job-cache
+        configMap:
+          name: cache.properties
+      - name: com-job-catalina
+        hostPath:
+          path: /data/project/paas/java/com/com-job/catalina.sh
+      - name: com-job-config
+        configMap:
+          name: com-job.properties
+      - name: com-job-server
+        hostPath:
+          path: /data/project/paas/java/com/com-job/server.xml
+      - name: com-job-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: com-job-log
+        hostPath:
+          path: /log/paas/java/com-job/app/
+      - name: com-job-catalinalog
+        hostPath:
+          path: /log/paas/java/com-job/tomcat/
+      - name: com-job-mysql-lib
+        hostPath:
+          path: /data/project/paas/java/com/mysql-connector-java-5.1.32.jar
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-job
+spec:
+  ports:
+    - port: 8012
+      protocol: TCP
+      nodePort: 38012
+  clusterIP: 10.68.21.12
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: com-job

@@ -1,0 +1,100 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-goods
+  labels:
+    app: com-goods
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-goods
+  template:
+    metadata:
+      labels:
+        app: com-goods
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: com-goods
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-goods
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-goods-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-goods-catalina
+        - mountPath: /data/laser/config/paas/com-goods/laser.properties
+          name: com-goods-config
+          subPath: laser.properties
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-goods-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-goods-context
+        - mountPath: /data/logs/laser/paas/com-goods
+          name: com-goods-log
+        - mountPath: /usr/local/tomcat/logs
+          name: com-goods-catalinalog
+        - mountPath: /usr/local/tomcat/lib/mysql-connector-java-5.1.32.jar
+          name: com-goods-mysql-lib
+        ports:
+        - containerPort: 8010
+        readinessProbe:
+          tcpSocket:
+            port: 8010
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 8010
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: com-goods-cache
+        configMap:
+          name: cache.properties
+      - name: com-goods-catalina
+        hostPath:
+          path: /data/project/paas/java/com/com-goods/catalina.sh
+      - name: com-goods-config
+        configMap:
+          name: com-goods.properties
+      - name: com-goods-server
+        hostPath:
+          path: /data/project/paas/java/com/com-goods/server.xml
+      - name: com-goods-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: com-goods-log
+        hostPath:
+          path: /log/paas/java/com-goods/app/
+      - name: com-goods-catalinalog
+        hostPath:
+          path: /log/paas/java/com-goods/tomcat/
+      - name: com-goods-mysql-lib
+        hostPath:
+          path: /data/project/paas/java/com/mysql-connector-java-5.1.32.jar
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-goods
+spec:
+  ports:
+    - port: 8010
+      protocol: TCP
+      nodePort: 38010
+  clusterIP: 10.68.21.10
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: com-goods

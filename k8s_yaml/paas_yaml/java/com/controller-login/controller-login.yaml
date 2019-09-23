@@ -1,0 +1,100 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: controller-login
+  labels:
+    app: controller-login
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: controller-login
+  template:
+    metadata:
+      labels:
+        app: controller-login
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: controller-login
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/controller-login
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: controller-login-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: controller-login-catalina
+        - mountPath: /data/laser/config/paas/controller-login/laser.properties
+          name: controller-login-config
+          subPath: laser.properties
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: controller-login-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: controller-login-context
+        - mountPath: /data/logs/laser/paas/controller-login
+          name: controller-login-log
+        - mountPath: /usr/local/tomcat/logs
+          name: controller-login-catalinalog
+        - mountPath: /usr/local/tomcat/lib/mysql-connector-java-5.1.32.jar
+          name: controller-login-mysql-lib
+        ports:
+        - containerPort: 8028
+        readinessProbe:
+          tcpSocket:
+            port: 8028
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 8028
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: controller-login-cache
+        configMap:
+          name: cache.properties
+      - name: controller-login-catalina
+        hostPath:
+          path: /data/project/paas/java/com/controller-login/catalina.sh
+      - name: controller-login-config
+        configMap:
+          name: controller-login.properties
+      - name: controller-login-server
+        hostPath:
+          path: /data/project/paas/java/com/controller-login/server.xml
+      - name: controller-login-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: controller-login-log
+        hostPath:
+          path: /log/paas/java/controller-login/app/
+      - name: controller-login-catalinalog
+        hostPath:
+          path: /log/paas/java/controller-login/tomcat/
+      - name: controller-login-mysql-lib
+        hostPath:
+          path: /data/project/paas/java/com/mysql-connector-java-5.1.32.jar
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: controller-login
+spec:
+  ports:
+    - port: 8028
+      protocol: TCP
+      nodePort: 38028
+  clusterIP: 10.68.21.28
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: controller-login

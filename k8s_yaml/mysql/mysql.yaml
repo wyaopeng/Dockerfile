@@ -1,0 +1,61 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      nodeSelector:
+        node1: worker1
+      containers:
+      - name: mysql
+        image: mysql:5.6
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /var/lib/mysql
+          name: mysql-datadir
+        - mountPath: /etc/mysql/conf.d
+          name: mysql-conf
+        ports:
+          - containerPort: 3306
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "Qjclouds.com"
+        - name: MYSQL_REPLICATION_USER
+          value: "repl"
+        - name: MYSQL_REPLICAITON_PASSWORD
+          value: "Qjclouds.com"
+      volumes:
+      - name: mysql-datadir
+        hostPath:
+          path: /data/project/mysql/datadir
+      - name: mysql-conf
+        hostPath:
+          path: /data/project/mysql/conf.d
+      imagePullSecrets:
+      - name: regsecret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+spec:
+  ports:
+    - port: 3306
+      targetPort: 3306
+      nodePort: 33306
+      protocol: TCP
+  clusterIP: 10.68.0.15
+  type: NodePort
+  selector:
+    app: mysql

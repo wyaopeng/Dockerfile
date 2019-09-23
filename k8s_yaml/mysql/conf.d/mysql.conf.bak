@@ -1,0 +1,110 @@
+[client]
+port = 3306  
+socket = /var/lib/mysql/mysql.sock
+[mysql]
+#这个配置段设置启动MySQL服务的条件；在这种情况下，no-auto-rehash确保这个服务启动得比较快。
+no-auto-rehash
+[mysqld]
+user = mysql  
+port = 3306  
+socket = /var/lib/mysql/mysql.sock  
+basedir = /usr/local/mysql  
+open_files_limit = 10240
+back_log = 600  
+max_connections = 30000  
+max_connect_errors = 6000  
+external-locking = FALSE  
+skip-locking
+max_allowed_packet = 32M  
+thread_cache_size = 300  
+#thread_concurrency = 8  
+query_cache_size = 64M  
+query_cache_min_res_unit = 2k  
+#default-storage-engine = MyISAM
+#default_table_type = InnoDB #开启失败
+#thread_stack = 192K  
+transaction_isolation = READ-COMMITTED  
+tmp_table_size = 256M  
+# tmp_table_size 的默认大小是 32M。如果一张临时表超出该大小，MySQL产生一个 The table tbl_name is full 形式的错误，如果你做很多高级 GROUP BY 查询，增加 tmp_table_size 值。如果超过该值，则会将临时表写入磁盘。
+
+expire_logs_days = 7  
+key_buffer_size = 2048M  
+#批定用于索引的缓冲区大小，增加它可以得到更好的索引处理性能，对于内存在4GB左右的服务器来说，该参数可设置为256MB或384MB。
+
+read_buffer_size = 1M  
+#默认128K
+# MySql读入缓冲区大小。对表进行顺序扫描的请求将分配一个读入缓冲区，MySql会为它分配一段内存缓冲区。read_buffer_size变量控制这一缓冲区的大小。如果对表的顺序扫描请求非常频繁，并且你认为频繁扫描进行得太慢，可以通过增加该变量值以及内存缓冲区大小提高其性能。和sort_buffer_size一样，该参数对应的分配内存也是每个连接独享。
+
+read_rnd_buffer_size = 16M  
+# MySql的随机读（查询操作）缓冲区大小。当按任意顺序读取行时(例如，按照排序顺序)，将分配一个随机读缓存区。进行排序查询时，MySql会首先扫描一遍该缓冲，以避免磁盘搜索，提高查询速度，如果需要排序大量数据，可适当调高该值。但MySql会为每个客户连接发放该缓冲空间，所以应尽量适当设置该值，以避免内存开销过大。
+
+bulk_insert_buffer_size = 64M  
+#批量插入数据缓存大小，可以有效提高插入效率，默认为8M
+
+myisam_sort_buffer_size = 128M  
+# MyISAM表发生变化时重新排序所需的缓冲 默认8M
+
+myisam_max_sort_file_size = 10G  
+# MySQL重建索引时所允许的最大临时文件的大小 (当 REPAIR, ALTER TABLE 或者 LOAD DATA INFILE).
+# 如果文件大小比此值更大,索引会通过键值缓冲创建(更慢)
+
+#myisam_max_extra_sort_file_size = 10G 5.6无此值设置
+#myisam_repair_threads = 1   默认为1
+# 如果一个表拥有超过一个索引, MyISAM 可以通过并行排序使用超过一个线程去修复他们.
+# 这对于拥有多个CPU以及大量内存情况的用户,是一个很好的选择.
+
+myisam_recover  
+#自动检查和修复没有适当关闭的 MyISAM 表
+skip-name-resolve  
+lower_case_table_names = 1  
+server-id = 1
+
+innodb_additional_mem_pool_size = 16M  
+#这个参数用来设置 InnoDB 存储的数据目录信息和其它内部数据结构的内存池大小，类似于Oracle的library cache。这不是一个强制参数，可以被突破。
+
+innodb_buffer_pool_size = 2048M  
+# 这对Innodb表来说非常重要。Innodb相比MyISAM表对缓冲更为敏感。MyISAM可以在默认的 key_buffer_size 设置下运行的可以，然而Innodb在默认的 innodb_buffer_pool_size 设置下却跟蜗牛似的。由于Innodb把数据和索引都缓存起来，无需留给操作系统太多的内存，因此如果只需要用Innodb的话则可以设置它高达 70-80% 的可用内存。一些应用于 key_buffer 的规则有 — 如果你的数据量不大，并且不会暴增，那么无需把 innodb_buffer_pool_size 设置的太大了
+
+#innodb_data_file_path = ibdata1:1024M:autoextend 设置过大导致报错，默认12M观察
+#表空间文件 重要数据
+
+#innodb_file_io_threads = 4   不明确，使用默认值
+#文件IO的线程数，一般为 4，但是在 Windows 下，可以设置得较大。
+
+
+innodb_thread_concurrency = 8  
+#服务器有几个CPU就设置为几，建议用默认设置，一般为8.
+
+innodb_flush_log_at_trx_commit = 2  
+# 如果将此参数设置为1，将在每次提交事务后将日志写入磁盘。为提供性能，可以设置为0或2，但要承担在发生故障时丢失数据的风险。设置为0表示事务日志写入日志文件，而日志文件每秒刷新到磁盘一次。设置为2表示事务日志将在提交时写入日志，但日志文件每次刷新到磁盘一次。
+
+#innodb_log_buffer_size = 16M   使用默认8M
+#此参数确定些日志文件所用的内存大小，以M为单位。缓冲区更大能提高性能，但意外的故障将会丢失数据.MySQL开发人员建议设置为1－8M之间
+
+#innodb_log_file_size = 128M  使用默认48M
+#此参数确定数据日志文件的大小，以M为单位，更大的设置可以提高性能，但也会增加恢复故障数据库所需的时间
+
+#innodb_log_files_in_group = 3   使用默认2
+#为提高性能，MySQL可以以循环方式将日志文件写到多个文件。推荐设置为3M
+
+#innodb_max_dirty_pages_pct = 90  使用默认75观察
+#推荐阅读 http://www.taobaodba.com/html/221_innodb_max_dirty_pages_pct_checkpoint.html
+# Buffer_Pool中Dirty_Page所占的数量，直接影响InnoDB的关闭时间。参数innodb_max_dirty_pages_pct 可以直接控制了Dirty_Page在Buffer_Pool中所占的比率，而且幸运的是innodb_max_dirty_pages_pct是可以动态改变的。所以，在关闭InnoDB之前先将innodb_max_dirty_pages_pct调小，强制数据块Flush一段时间，则能够大大缩短 MySQL关闭的时间。
+
+innodb_lock_wait_timeout = 120  
+#默认为50秒 
+# InnoDB 有其内置的死锁检测机制，能导致未完成的事务回滚。但是，如果结合InnoDB使用MyISAM的lock tables 语句或第三方事务引擎,则InnoDB无法识别死锁。为消除这种可能性，可以将innodb_lock_wait_timeout设置为一个整数值，指示 MySQL在允许其他事务修改那些最终受事务回滚的数据之前要等待多长时间(秒数)
+
+innodb_file_per_table = 0  
+#默认为No
+#独享表空间（关闭）
+
+[mysqldump]
+quick  
+# max_allowed_packet = 32M
+
+[mysqld_safe]
+log-error=/data/mysql/mysql_oldboy.err  
+pid-file=/data/mysql/mysqld.pid
+
+sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES  

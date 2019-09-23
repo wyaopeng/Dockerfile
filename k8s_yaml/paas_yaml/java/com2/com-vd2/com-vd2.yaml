@@ -1,0 +1,74 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-vd2
+  labels:
+    app: com-vd2
+spec:
+  minReadySeconds: 60
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-vd2
+  template:
+    metadata:
+      labels:
+        app: com-vd2
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node2: worker2
+      containers:
+      - name: com-vd2
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-vd
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-vd2-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-vd2-catalina
+        - mountPath: /data/laser/config/paas/com-vd/laser.properties
+          name: com-vd2-config
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-vd2-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-vd2-context
+        ports:
+        - containerPort: 8020
+      volumes:
+      - name: com-vd2-cache
+        configMap:
+          name: cache.properties
+      - name: com-vd2-catalina
+        hostPath:
+          path: /data/project/paas/java/com2/com-vd2/catalina.sh
+      - name: com-vd2-config
+        hostPath:
+          path: /data/project/paas/java/com2/com-vd2/laser.properties
+      - name: com-vd2-server
+        hostPath:
+          path: /data/project/paas/java/com2/com-vd2/server.xml
+      - name: com-vd2-context
+        hostPath:
+          path: /data/project/paas/java/com2/com-vd2/context.xml
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-vd2
+spec:
+  ports:
+    - port: 8020
+      protocol: TCP
+  clusterIP: 10.68.22.20
+  type: NodePort
+  selector:
+    app: com-vd2

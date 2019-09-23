@@ -1,0 +1,74 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-ctest2
+  labels:
+    app: com-ctest2
+spec:
+  minReadySeconds: 60
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-ctest2
+  template:
+    metadata:
+      labels:
+        app: com-ctest2
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node2: worker2
+      containers:
+      - name: com-ctest2
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-ctest
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-ctest2-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-ctest2-catalina
+        - mountPath: /data/laser/config/paas/com-ctest/laser.properties
+          name: com-ctest2-config
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-ctest2-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-ctest2-context
+        ports:
+        - containerPort: 805
+      volumes:
+      - name: com-ctest2-cache
+        configMap:
+          name: cache.properties
+      - name: com-ctest2-catalina
+        hostPath:
+          path: /data/project/paas/java/com2/com-ctest2/catalina.sh
+      - name: com-ctest2-config
+        hostPath:
+          path: /data/project/paas/java/com2/com-ctest2/laser.properties
+      - name: com-ctest2-server
+        hostPath:
+          path: /data/project/paas/java/com2/com-ctest2/server.xml
+      - name: com-ctest2-context
+        hostPath:
+          path: /data/project/paas/java/com2/com-ctest2/context.xml
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-ctest2
+spec:
+  ports:
+    - port: 805
+      protocol: TCP
+  clusterIP: 10.68.22.5
+  type: NodePort
+  selector:
+    app: com-ctest2

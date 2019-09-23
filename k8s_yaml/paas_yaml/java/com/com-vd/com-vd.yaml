@@ -1,0 +1,100 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-vd
+  labels:
+    app: com-vd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-vd
+  template:
+    metadata:
+      labels:
+        app: com-vd
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: com-vd
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-vd
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-vd-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-vd-catalina
+        - mountPath: /data/laser/config/paas/com-vd/laser.properties
+          name: com-vd-config
+          subPath: laser.properties
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-vd-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-vd-context
+        - mountPath: /data/logs/laser/paas/com-vd
+          name: com-vd-log
+        - mountPath: /usr/local/tomcat/logs
+          name: com-vd-catalinalog
+        - mountPath: /usr/local/tomcat/lib/mysql-connector-java-5.1.32.jar
+          name: com-vd-mysql-lib
+        ports:
+        - containerPort: 8020
+        readinessProbe:
+          tcpSocket:
+            port: 8020
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 8020
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: com-vd-cache
+        configMap:
+          name: cache.properties
+      - name: com-vd-catalina
+        hostPath:
+          path: /data/project/paas/java/com/com-vd/catalina.sh
+      - name: com-vd-config
+        configMap:
+          name: com-vd.properties
+      - name: com-vd-server
+        hostPath:
+          path: /data/project/paas/java/com/com-vd/server.xml
+      - name: com-vd-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: com-vd-log
+        hostPath:
+          path: /log/paas/java/com-vd/app/
+      - name: com-vd-catalinalog
+        hostPath:
+          path: /log/paas/java/com-vd/tomcat/
+      - name: com-vd-mysql-lib
+        hostPath:
+          path: /data/project/paas/java/com/mysql-connector-java-5.1.32.jar
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-vd
+spec:
+  ports:
+    - port: 8020
+      protocol: TCP
+      nodePort: 38020
+  clusterIP: 10.68.21.20
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: com-vd

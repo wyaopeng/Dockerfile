@@ -1,0 +1,100 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-ctest
+  labels:
+    app: com-ctest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-ctest
+  template:
+    metadata:
+      labels:
+        app: com-ctest
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: com-ctest
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-ctest
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-ctest-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-ctest-catalina
+        - mountPath: /data/laser/config/paas/com-ctest/laser.properties
+          name: com-ctest-config
+          subPath: laser.properties
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-ctest-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-ctest-context
+        - mountPath: /data/logs/laser/paas/com-ctest
+          name: com-ctest-log
+        - mountPath: /usr/local/tomcat/logs
+          name: com-ctest-catalinalog
+        - mountPath: /usr/local/tomcat/lib/mysql-connector-java-5.1.32.jar
+          name: com-ctest-mysql-lib
+        ports:
+        - containerPort: 805
+        readinessProbe:
+          tcpSocket:
+            port: 805
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 805
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: com-ctest-cache
+        configMap:
+          name: cache.properties
+      - name: com-ctest-catalina
+        hostPath:
+          path: /data/project/paas/java/com/com-ctest/catalina.sh
+      - name: com-ctest-config
+        configMap:
+          name: com-ctest.properties
+      - name: com-ctest-server
+        hostPath:
+          path: /data/project/paas/java/com/com-ctest/server.xml
+      - name: com-ctest-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: com-ctest-log
+        hostPath:
+          path: /log/paas/java/com-ctest/app/
+      - name: com-ctest-catalinalog
+        hostPath:
+          path: /log/paas/java/com-ctest/tomcat/
+      - name: com-ctest-mysql-lib
+        hostPath:
+          path: /data/project/paas/java/com/mysql-connector-java-5.1.32.jar
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-ctest
+spec:
+  ports:
+    - port: 805
+      protocol: TCP
+      nodePort: 3805
+  clusterIP: 10.68.21.5
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: com-ctest

@@ -1,0 +1,100 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-basic
+  labels:
+    app: com-basic
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-basic
+  template:
+    metadata:
+      labels:
+        app: com-basic
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: com-basic
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-basic
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-basic-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-basic-catalina
+        - mountPath: /data/laser/config/paas/com-basic/laser.properties
+          name: com-basic-config
+          subPath: laser.properties
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-basic-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-basic-context
+        - mountPath: /data/logs/laser/paas/com-basic
+          name: com-basic-log
+        - mountPath: /usr/local/tomcat/logs
+          name: com-basic-catalinalog
+        - mountPath: /usr/local/tomcat/lib/mysql-connector-java-5.1.32.jar
+          name: com-basic-mysql-lib
+        ports:
+        - containerPort: 802
+        readinessProbe:
+          tcpSocket:
+            port: 802
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 802
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: com-basic-cache
+        configMap:
+          name: cache.properties
+      - name: com-basic-catalina
+        hostPath:
+          path: /data/project/paas/java/com/com-basic/catalina.sh
+      - name: com-basic-config
+        configMap:
+          name: com-basic.properties
+      - name: com-basic-server
+        hostPath:
+          path: /data/project/paas/java/com/com-basic/server.xml
+      - name: com-basic-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: com-basic-log
+        hostPath:
+          path: /log/paas/java/com-basic/app/
+      - name: com-basic-catalinalog
+        hostPath:
+          path: /log/paas/java/com-basic/tomcat/
+      - name: com-basic-mysql-lib
+        hostPath:
+          path: /data/project/paas/java/com/mysql-connector-java-5.1.32.jar
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-basic
+spec:
+  ports:
+    - port: 802
+      protocol: TCP
+      nodePort: 3802
+  clusterIP: 10.68.21.2
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: com-basic

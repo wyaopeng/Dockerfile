@@ -1,0 +1,100 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-mdc
+  labels:
+    app: com-mdc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-mdc
+  template:
+    metadata:
+      labels:
+        app: com-mdc
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: com-mdc
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-mdc
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-mdc-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-mdc-catalina
+        - mountPath: /data/laser/config/paas/com-mdc/laser.properties
+          name: com-mdc-config
+          subPath: laser.properties
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-mdc-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-mdc-context
+        - mountPath: /data/logs/laser/paas/com-mdc
+          name: com-mdc-log
+        - mountPath: /usr/local/tomcat/logs
+          name: com-mdc-catalinalog
+        - mountPath: /usr/local/tomcat/lib/mysql-connector-java-5.1.32.jar
+          name: com-mdc-mysql-lib
+        ports:
+        - containerPort: 8030
+        readinessProbe:
+          tcpSocket:
+            port: 8030
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 8030
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: com-mdc-cache
+        configMap:
+          name: cache.properties
+      - name: com-mdc-catalina
+        hostPath:
+          path: /data/project/paas/java/com/com-mdc/catalina.sh
+      - name: com-mdc-config
+        configMap:
+          name: com-mdc.properties
+      - name: com-mdc-server
+        hostPath:
+          path: /data/project/paas/java/com/com-mdc/server.xml
+      - name: com-mdc-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: com-mdc-log
+        hostPath:
+          path: /log/paas/java/com-mdc/app/
+      - name: com-mdc-catalinalog
+        hostPath:
+          path: /log/paas/java/com-mdc/tomcat/
+      - name: com-mdc-mysql-lib
+        hostPath:
+          path: /data/project/paas/java/com/mysql-connector-java-5.1.32.jar
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-mdc
+spec:
+  ports:
+    - port: 8030
+      protocol: TCP
+      nodePort: 38030
+  clusterIP: 10.68.21.30
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: com-mdc

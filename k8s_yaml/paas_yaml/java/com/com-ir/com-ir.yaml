@@ -1,0 +1,100 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-ir
+  labels:
+    app: com-ir
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-ir
+  template:
+    metadata:
+      labels:
+        app: com-ir
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: com-ir
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-ir
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-ir-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-ir-catalina
+        - mountPath: /data/laser/config/paas/com-ir/laser.properties
+          name: com-ir-config
+          subPath: laser.properties
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-ir-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-ir-context
+        - mountPath: /data/logs/laser/paas/com-ir
+          name: com-ir-log
+        - mountPath: /usr/local/tomcat/logs
+          name: com-ir-catalinalog
+        - mountPath: /usr/local/tomcat/lib/mysql-connector-java-5.1.32.jar
+          name: com-ir-mysql-lib
+        ports:
+        - containerPort: 8011
+        readinessProbe:
+          tcpSocket:
+            port: 8011
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 8011
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: com-ir-cache
+        configMap:
+          name: cache.properties
+      - name: com-ir-catalina
+        hostPath:
+          path: /data/project/paas/java/com/com-ir/catalina.sh
+      - name: com-ir-config
+        configMap:
+          name: com-ir.properties
+      - name: com-ir-server
+        hostPath:
+          path: /data/project/paas/java/com/com-ir/server.xml
+      - name: com-ir-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: com-ir-log
+        hostPath:
+          path: /log/paas/java/com-ir/app/
+      - name: com-ir-catalinalog
+        hostPath:
+          path: /log/paas/java/com-ir/tomcat/
+      - name: com-ir-mysql-lib
+        hostPath:
+          path: /data/project/paas/java/com/mysql-connector-java-5.1.32.jar
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-ir
+spec:
+  ports:
+    - port: 8011
+      protocol: TCP
+      nodePort: 38011
+  clusterIP: 10.68.21.11
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: com-ir

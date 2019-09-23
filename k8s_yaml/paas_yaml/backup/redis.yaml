@@ -1,0 +1,55 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: redis
+  labels:
+    app: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      nodeSelector:
+        node1: worker1
+      containers:
+      - name: redis
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/redis
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /var/log/redis
+          name: redis-log
+        - mountPath: /etc/redis.conf
+          name: redis-conf
+        ports:
+        - containerPort: 6379
+      volumes:
+      - name: redis-log
+        hostPath:
+      # directory location on host
+          path: /data/project/redis
+      - name: redis-conf
+        hostPath:
+          path: /data/project/redis/redis.conf
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+spec:
+  ports:
+    - port: 6379
+      nodePort: 36379
+      protocol: TCP
+  clusterIP: 10.68.0.16
+  type: NodePort
+  selector:
+    app: redis

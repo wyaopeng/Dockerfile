@@ -1,0 +1,100 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-cm
+  labels:
+    app: com-cm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-cm
+  template:
+    metadata:
+      labels:
+        app: com-cm
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: com-cm
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-cm
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-cm-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-cm-catalina
+        - mountPath: /data/laser/config/paas/com-cm/laser.properties
+          name: com-cm-config
+          subPath: laser.properties
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-cm-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-cm-context
+        - mountPath: /data/logs/laser/paas/com-cm
+          name: com-cm-log
+        - mountPath: /usr/local/tomcat/logs
+          name: com-cm-catalinalog
+        - mountPath: /usr/local/tomcat/lib/mysql-connector-java-5.1.32.jar
+          name: com-cm-mysql-lib
+        ports:
+        - containerPort: 803
+        readinessProbe:
+          tcpSocket:
+            port: 803
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 803
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: com-cm-cache
+        configMap:
+          name: cache.properties
+      - name: com-cm-catalina
+        hostPath:
+          path: /data/project/paas/java/com/com-cm/catalina.sh
+      - name: com-cm-config
+        configMap:
+          name: com-cm.properties
+      - name: com-cm-server
+        hostPath:
+          path: /data/project/paas/java/com/com-cm/server.xml
+      - name: com-cm-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: com-cm-log
+        hostPath:
+          path: /log/paas/java/com-cm/app/
+      - name: com-cm-catalinalog
+        hostPath:
+          path: /log/paas/java/com-cm/tomcat/
+      - name: com-cm-mysql-lib
+        hostPath:
+          path: /data/project/paas/java/com/mysql-connector-java-5.1.32.jar
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-cm
+spec:
+  ports:
+    - port: 803
+      protocol: TCP
+      nodePort: 3803
+  clusterIP: 10.68.21.3
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: com-cm

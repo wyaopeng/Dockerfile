@@ -1,0 +1,48 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: svn
+  labels:
+    app: svn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: svn
+  template:
+    metadata:
+      labels:
+        app: svn
+    spec:
+      nodeSelector:
+        node1: worker1
+      containers:
+      - name: svn
+        image: krisdavison/svn-server:v2.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: svn
+          mountPath: /home/svn
+        command:
+        - /startup.sh
+      volumes:
+        - name: svn
+          persistentVolumeClaim:
+            claimName: svn
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: svn
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+      nodePort: 60080
+  clusterIP: 10.68.0.20
+  type: NodePort
+  selector:
+    app: svn

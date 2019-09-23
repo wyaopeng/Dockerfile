@@ -1,0 +1,74 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: templateapp2
+  labels:
+    app: templateapp2
+spec:
+  minReadySeconds: 60
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 
+  replicas: 1
+  selector:
+    matchLabels:
+      app: templateapp2
+  template:
+    metadata:
+      labels:
+        app: templateapp2
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node2: worker2
+      containers:
+      - name: templateapp2
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/templateapp2
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: templateapp2-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: templateapp2-catalina
+        - mountPath: /data/laser/config/paas/templateapp2/laser.properties
+          name: templateapp2-config
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: templateapp2-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: templateapp2-context
+        ports:
+        - containerPort: 8080
+      volumes:
+      - name: templateapp2-cache
+        configMap:
+          name: cache.properties
+      - name: templateapp2-catalina
+        hostPath:
+          path: /data/project/paas/java/com2/templateapp2/catalina.sh
+      - name: templateapp2-config
+        hostPath:
+          path: /data/project/paas/java/com2/templateapp2/laser.properties
+      - name: templateapp2-server
+        hostPath:
+          path: /data/project/paas/java/com2/templateapp2/server.xml
+      - name: templateapp2-context
+        hostPath:
+          path: /data/project/paas/java/com2/templateapp2/context.xml
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: templateapp2
+spec:
+  ports:
+    - port: 8080
+      protocol: TCP
+  clusterIP: 10.68.22.appip
+  type: NodePort
+  selector:
+    app: templateapp2

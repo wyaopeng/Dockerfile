@@ -1,0 +1,56 @@
+kind: DaemonSet
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: nginx-client
+  labels:
+    app: nginx-client
+spec:
+  selector:
+    matchLabels:
+      app: nginx-client
+  template:
+    metadata:
+      labels:
+        app: nginx-client
+    spec:
+      nodeSelector:
+        node: worker
+      containers:
+      - name: nginx-client
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/nginx-client
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /etc/nginx/conf.d/
+          name: nginx-client-conf
+        - mountPath: /etc/nginx/nginx.conf
+          name: nginx-client
+        - mountPath: /data/html/
+          name: nginx-client-html
+        ports:
+        - containerPort: 80
+      volumes:
+      - name: nginx-client-conf
+        hostPath:
+          path: /data/project/nginx-client/conf.d
+      - name: nginx-client
+        hostPath:
+          path: /data/project/nginx-client/nginx.conf
+      - name: nginx-client-html
+        hostPath:
+          path: /data/project/nginx-client/html/
+      imagePullSecrets:
+      - name: regsecret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-client
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+  clusterIP: 10.68.0.18
+  selector:
+    app: nginx-client
+

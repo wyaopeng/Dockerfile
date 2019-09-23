@@ -1,0 +1,74 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: 
+  labels:
+    app: 
+spec:
+  minReadySeconds: 60
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 
+  replicas: 1
+  selector:
+    matchLabels:
+      app: 
+  template:
+    metadata:
+      labels:
+        app: 
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node2: worker2
+      containers:
+      - name: 
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/templateapp
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: -cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: -catalina
+        - mountPath: /data/laser/config/paas/templateapp/laser.properties
+          name: -config
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: -server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: -context
+        ports:
+        - containerPort: 8080
+      volumes:
+      - name: -cache
+        configMap:
+          name: cache.properties
+      - name: -catalina
+        hostPath:
+          path: /data/project/paas/java/com2//catalina.sh
+      - name: -config
+        hostPath:
+          path: /data/project/paas/java/com2//laser.properties
+      - name: -server
+        hostPath:
+          path: /data/project/paas/java/com2//server.xml
+      - name: -context
+        hostPath:
+          path: /data/project/paas/java/com2//context.xml
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: 
+spec:
+  ports:
+    - port: 8080
+      protocol: TCP
+  clusterIP: 10.68.22.appip
+  type: NodePort
+  selector:
+    app: 

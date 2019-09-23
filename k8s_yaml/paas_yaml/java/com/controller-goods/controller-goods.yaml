@@ -1,0 +1,100 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: controller-goods
+  labels:
+    app: controller-goods
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: controller-goods
+  template:
+    metadata:
+      labels:
+        app: controller-goods
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: controller-goods
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/controller-goods
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: controller-goods-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: controller-goods-catalina
+        - mountPath: /data/laser/config/paas/controller-goods/laser.properties
+          name: controller-goods-config
+          subPath: laser.properties
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: controller-goods-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: controller-goods-context
+        - mountPath: /data/logs/laser/paas/controller-goods
+          name: controller-goods-log
+        - mountPath: /usr/local/tomcat/logs
+          name: controller-goods-catalinalog
+        - mountPath: /usr/local/tomcat/lib/mysql-connector-java-5.1.32.jar
+          name: controller-goods-mysql-lib
+        ports:
+        - containerPort: 8027
+        readinessProbe:
+          tcpSocket:
+            port: 8027
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 8027
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: controller-goods-cache
+        configMap:
+          name: cache.properties
+      - name: controller-goods-catalina
+        hostPath:
+          path: /data/project/paas/java/com/controller-goods/catalina.sh
+      - name: controller-goods-config
+        configMap:
+          name: controller-goods.properties
+      - name: controller-goods-server
+        hostPath:
+          path: /data/project/paas/java/com/controller-goods/server.xml
+      - name: controller-goods-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: controller-goods-log
+        hostPath:
+          path: /log/paas/java/controller-goods/app/
+      - name: controller-goods-catalinalog
+        hostPath:
+          path: /log/paas/java/controller-goods/tomcat/
+      - name: controller-goods-mysql-lib
+        hostPath:
+          path: /data/project/paas/java/com/mysql-connector-java-5.1.32.jar
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: controller-goods
+spec:
+  ports:
+    - port: 8027
+      protocol: TCP
+      nodePort: 38027
+  clusterIP: 10.68.21.27
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: controller-goods

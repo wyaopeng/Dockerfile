@@ -1,0 +1,67 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: template
+  labels:
+    app: template
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: template
+  template:
+    metadata:
+      labels:
+        app: template
+    spec:
+      nodeSelector:
+        node1: worker1
+      containers:
+      - name: template
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/template
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /usr/local/tomcat/logs
+          name: template-log
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: template-catalina
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: template-context-xml
+        - mountPath: /usr/local/tomcat/webapps
+          name: template-webapps		  
+        - mountPath: /data/laser/config/paas/template/
+          name: templateconfig
+        ports:
+        - containerPort: 8080
+      volumes:
+      - name: template-log
+        hostPath:
+          path: /data/project/paas/java/template/logs
+      - name: template-catalina
+        hostPath:
+          path: /data/project/paas/java/template/catalina.sh
+      - name: template-context-xml
+        hostPath:
+          path: /data/project/paas/java/template/context.xml
+      - name: template-webapps
+        hostPath:
+          path: /data/project/paas/java/template/webapps
+      - name: $lineconfig
+        hostPath:
+          path: /data/project/paas/java/template
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: template
+spec:
+  ports:
+    - port: 8080
+      protocol: TCP
+  type: NodePort
+  selector:
+    app: template

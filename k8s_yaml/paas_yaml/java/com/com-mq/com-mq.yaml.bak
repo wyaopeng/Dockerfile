@@ -1,0 +1,95 @@
+kind: StatefulSet
+apiVersion: apps/v1beta1
+
+metadata:
+  name: com-mq
+  labels:
+    app: com-mq
+spec:
+  serviceName: "com-mq"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-mq
+  template:
+    metadata:
+      labels:
+        app: com-mq
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: com-mq
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-mq
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-mq-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-mq-catalina
+        - mountPath: /data/laser/config/paas/com-mq/laser.properties
+          name: com-mq-config
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-mq-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-mq-context
+        - mountPath: /data/logs/laser/paas/com-mq
+          name: com-mq-log
+        - mountPath: /usr/local/tomcat/logs
+          name: com-mq-catalinalog
+        ports:
+        - containerPort: 8014
+        readinessProbe:
+          tcpSocket:
+            port: 8014
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 8014
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: com-mq-cache
+        configMap:
+          name: cache.properties
+      - name: com-mq-catalina
+        hostPath:
+          path: /data/project/paas/java/com/com-mq/catalina.sh
+      - name: com-mq-config
+        hostPath:
+          path: /data/project/paas/java/com/com-mq/laser.properties
+      - name: com-mq-server
+        hostPath:
+          path: /data/project/paas/java/com/com-mq/server.xml
+      - name: com-mq-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: com-mq-log
+        hostPath:
+          path: /log/paas/java/com-mq/app/
+      - name: com-mq-catalinalog
+        hostPath:
+          path: /log/paas/java/com-mq/tomcat/
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-mq
+spec:
+  ports:
+    - port: 8014
+      protocol: TCP
+      nodePort: 38014
+  clusterIP: 10.68.21.14
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: com-mq

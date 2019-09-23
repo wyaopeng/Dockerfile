@@ -1,0 +1,100 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-ftp
+  labels:
+    app: com-ftp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-ftp
+  template:
+    metadata:
+      labels:
+        app: com-ftp
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: com-ftp
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-ftp
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-ftp-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-ftp-catalina
+        - mountPath: /data/laser/config/paas/com-ftp/laser.properties
+          name: com-ftp-config
+          subPath: laser.properties
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-ftp-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-ftp-context
+        - mountPath: /data/logs/laser/paas/com-ftp
+          name: com-ftp-log
+        - mountPath: /usr/local/tomcat/logs
+          name: com-ftp-catalinalog
+        - mountPath: /usr/local/tomcat/lib/mysql-connector-java-5.1.32.jar
+          name: com-ftp-mysql-lib
+        ports:
+        - containerPort: 809
+        readinessProbe:
+          tcpSocket:
+            port: 809
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 809
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: com-ftp-cache
+        configMap:
+          name: cache.properties
+      - name: com-ftp-catalina
+        hostPath:
+          path: /data/project/paas/java/com/com-ftp/catalina.sh
+      - name: com-ftp-config
+        configMap:
+          name: com-ftp.properties
+      - name: com-ftp-server
+        hostPath:
+          path: /data/project/paas/java/com/com-ftp/server.xml
+      - name: com-ftp-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: com-ftp-log
+        hostPath:
+          path: /log/paas/java/com-ftp/app/
+      - name: com-ftp-catalinalog
+        hostPath:
+          path: /log/paas/java/com-ftp/tomcat/
+      - name: com-ftp-mysql-lib
+        hostPath:
+          path: /data/project/paas/java/com/mysql-connector-java-5.1.32.jar
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-ftp
+spec:
+  ports:
+    - port: 809
+      protocol: TCP
+      nodePort: 3809
+  clusterIP: 10.68.21.9
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: com-ftp

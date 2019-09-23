@@ -1,0 +1,100 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-pay
+  labels:
+    app: com-pay
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-pay
+  template:
+    metadata:
+      labels:
+        app: com-pay
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: com-pay
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-pay
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-pay-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-pay-catalina
+        - mountPath: /data/laser/config/paas/com-pay/laser.properties
+          name: com-pay-config
+          subPath: laser.properties
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-pay-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-pay-context
+        - mountPath: /data/logs/laser/paas/com-pay
+          name: com-pay-log
+        - mountPath: /usr/local/tomcat/logs
+          name: com-pay-catalinalog
+        - mountPath: /usr/local/tomcat/lib/mysql-connector-java-5.1.32.jar
+          name: com-pay-mysql-lib
+        ports:
+        - containerPort: 8016
+        readinessProbe:
+          tcpSocket:
+            port: 8016
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 8016
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: com-pay-cache
+        configMap:
+          name: cache.properties
+      - name: com-pay-catalina
+        hostPath:
+          path: /data/project/paas/java/com/com-pay/catalina.sh
+      - name: com-pay-config
+        configMap:
+          name: com-pay.properties
+      - name: com-pay-server
+        hostPath:
+          path: /data/project/paas/java/com/com-pay/server.xml
+      - name: com-pay-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: com-pay-log
+        hostPath:
+          path: /log/paas/java/com-pay/app/
+      - name: com-pay-catalinalog
+        hostPath:
+          path: /log/paas/java/com-pay/tomcat/
+      - name: com-pay-mysql-lib
+        hostPath:
+          path: /data/project/paas/java/com/mysql-connector-java-5.1.32.jar
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-pay
+spec:
+  ports:
+    - port: 8016
+      protocol: TCP
+      nodePort: 38016
+  clusterIP: 10.68.21.16
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: com-pay

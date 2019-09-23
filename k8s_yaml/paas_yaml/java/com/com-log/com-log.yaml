@@ -1,0 +1,100 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-log
+  labels:
+    app: com-log
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-log
+  template:
+    metadata:
+      labels:
+        app: com-log
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: com-log
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-log
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-log-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-log-catalina
+        - mountPath: /data/laser/config/paas/com-log/laser.properties
+          name: com-log-config
+          subPath: laser.properties
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-log-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-log-context
+        - mountPath: /data/logs/laser/paas/com-log
+          name: com-log-log
+        - mountPath: /usr/local/tomcat/logs
+          name: com-log-catalinalog
+        - mountPath: /usr/local/tomcat/lib/mysql-connector-java-5.1.32.jar
+          name: com-log-mysql-lib
+        ports:
+        - containerPort: 8013
+        readinessProbe:
+          tcpSocket:
+            port: 8013
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 8013
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: com-log-cache
+        configMap:
+          name: cache.properties
+      - name: com-log-catalina
+        hostPath:
+          path: /data/project/paas/java/com/com-log/catalina.sh
+      - name: com-log-config
+        configMap:
+          name: com-log.properties
+      - name: com-log-server
+        hostPath:
+          path: /data/project/paas/java/com/com-log/server.xml
+      - name: com-log-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: com-log-log
+        hostPath:
+          path: /log/paas/java/com-log/app/
+      - name: com-log-catalinalog
+        hostPath:
+          path: /log/paas/java/com-log/tomcat/
+      - name: com-log-mysql-lib
+        hostPath:
+          path: /data/project/paas/java/com/mysql-connector-java-5.1.32.jar
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-log
+spec:
+  ports:
+    - port: 8013
+      protocol: TCP
+      nodePort: 38013
+  clusterIP: 10.68.21.13
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: com-log

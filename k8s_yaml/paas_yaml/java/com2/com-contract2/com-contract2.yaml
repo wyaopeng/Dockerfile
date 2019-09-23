@@ -1,0 +1,74 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-contract2
+  labels:
+    app: com-contract2
+spec:
+  minReadySeconds: 60
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-contract2
+  template:
+    metadata:
+      labels:
+        app: com-contract2
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node2: worker2
+      containers:
+      - name: com-contract2
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-contract
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-contract2-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-contract2-catalina
+        - mountPath: /data/laser/config/paas/com-contract/laser.properties
+          name: com-contract2-config
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-contract2-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-contract2-context
+        ports:
+        - containerPort: 804
+      volumes:
+      - name: com-contract2-cache
+        configMap:
+          name: cache.properties
+      - name: com-contract2-catalina
+        hostPath:
+          path: /data/project/paas/java/com2/com-contract2/catalina.sh
+      - name: com-contract2-config
+        hostPath:
+          path: /data/project/paas/java/com2/com-contract2/laser.properties
+      - name: com-contract2-server
+        hostPath:
+          path: /data/project/paas/java/com2/com-contract2/server.xml
+      - name: com-contract2-context
+        hostPath:
+          path: /data/project/paas/java/com2/com-contract2/context.xml
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-contract2
+spec:
+  ports:
+    - port: 804
+      protocol: TCP
+  clusterIP: 10.68.22.4
+  type: NodePort
+  selector:
+    app: com-contract2

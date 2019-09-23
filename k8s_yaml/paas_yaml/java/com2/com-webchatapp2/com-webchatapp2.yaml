@@ -1,0 +1,74 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-webchatapp2
+  labels:
+    app: com-webchatapp2
+spec:
+  minReadySeconds: 60
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-webchatapp2
+  template:
+    metadata:
+      labels:
+        app: com-webchatapp2
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node2: worker2
+      containers:
+      - name: com-webchatapp2
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-webchatapp
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-webchatapp2-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-webchatapp2-catalina
+        - mountPath: /data/laser/config/paas/com-webchatapp/laser.properties
+          name: com-webchatapp2-config
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-webchatapp2-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-webchatapp2-context
+        ports:
+        - containerPort: 8021
+      volumes:
+      - name: com-webchatapp2-cache
+        configMap:
+          name: cache.properties
+      - name: com-webchatapp2-catalina
+        hostPath:
+          path: /data/project/paas/java/com2/com-webchatapp2/catalina.sh
+      - name: com-webchatapp2-config
+        hostPath:
+          path: /data/project/paas/java/com2/com-webchatapp2/laser.properties
+      - name: com-webchatapp2-server
+        hostPath:
+          path: /data/project/paas/java/com2/com-webchatapp2/server.xml
+      - name: com-webchatapp2-context
+        hostPath:
+          path: /data/project/paas/java/com2/com-webchatapp2/context.xml
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-webchatapp2
+spec:
+  ports:
+    - port: 8021
+      protocol: TCP
+  clusterIP: 10.68.22.21
+  type: NodePort
+  selector:
+    app: com-webchatapp2

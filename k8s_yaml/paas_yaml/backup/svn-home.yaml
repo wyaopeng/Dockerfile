@@ -1,0 +1,12 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: svn
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: "class-aliyun-nas-01"
+  resources:
+    requests:
+      storage: 50Gi
+

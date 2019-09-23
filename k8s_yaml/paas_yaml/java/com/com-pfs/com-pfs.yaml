@@ -1,0 +1,100 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-pfs
+  labels:
+    app: com-pfs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-pfs
+  template:
+    metadata:
+      labels:
+        app: com-pfs
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: com-pfs
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-pfs
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-pfs-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-pfs-catalina
+        - mountPath: /data/laser/config/paas/com-pfs/laser.properties
+          name: com-pfs-config
+          subPath: laser.properties
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-pfs-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-pfs-context
+        - mountPath: /data/logs/laser/paas/com-pfs
+          name: com-pfs-log
+        - mountPath: /usr/local/tomcat/logs
+          name: com-pfs-catalinalog
+        - mountPath: /usr/local/tomcat/lib/mysql-connector-java-5.1.32.jar
+          name: com-pfs-mysql-lib
+        ports:
+        - containerPort: 8018
+        readinessProbe:
+          tcpSocket:
+            port: 8018
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 8018
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: com-pfs-cache
+        configMap:
+          name: cache.properties
+      - name: com-pfs-catalina
+        hostPath:
+          path: /data/project/paas/java/com/com-pfs/catalina.sh
+      - name: com-pfs-config
+        configMap:
+          name: com-pfs.properties
+      - name: com-pfs-server
+        hostPath:
+          path: /data/project/paas/java/com/com-pfs/server.xml
+      - name: com-pfs-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: com-pfs-log
+        hostPath:
+          path: /log/paas/java/com-pfs/app/
+      - name: com-pfs-catalinalog
+        hostPath:
+          path: /log/paas/java/com-pfs/tomcat/
+      - name: com-pfs-mysql-lib
+        hostPath:
+          path: /data/project/paas/java/com/mysql-connector-java-5.1.32.jar
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-pfs
+spec:
+  ports:
+    - port: 8018
+      protocol: TCP
+      nodePort: 38018
+  clusterIP: 10.68.21.18
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: com-pfs

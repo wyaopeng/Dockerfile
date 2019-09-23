@@ -1,0 +1,52 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: elasticsearch
+  labels:
+    app: elasticsearch
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node1: worker1
+      containers:
+      - name: elasticsearch
+        image: elasticsearch:5.6.8
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /usr/share/elasticsearch/plugins
+          name: elasticsearch-plugins
+        - mountPath: /usr/share/elasticsearch/data
+          name: elasticsearch-data		  
+        ports:
+        - containerPort: 9200
+      volumes:
+      - name: elasticsearch-plugins
+        hostPath:
+          path: /data/project/elasticsearch/plugins
+      - name: elasticsearch-data
+        hostPath:
+          path: /data/project/elasticsearch/data
+      imagePullSecrets:
+      - name: regsecret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+spec:
+  ports:
+    - port: 9200
+      protocol: TCP
+  clusterIP: 10.68.0.17
+  selector:
+    app: elasticsearch

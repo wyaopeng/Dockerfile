@@ -1,0 +1,106 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-es
+  labels:
+    app: com-es
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-es
+  template:
+    metadata:
+      labels:
+        app: com-es
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: com-es
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-es
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-es-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-es-catalina
+        - mountPath: /data/laser/config/paas/com-es/laser.properties
+          name: com-es-config
+          subPath: laser.properties
+        - mountPath: /data/laser/config/paas/com-es/search.properties
+          name: com-es-search
+          subPath: search.properties
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-es-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-es-context
+        - mountPath: /data/logs/laser/paas/com-es
+          name: com-es-log
+        - mountPath: /usr/local/tomcat/logs
+          name: com-es-catalinalog
+        - mountPath: /usr/local/tomcat/lib/mysql-connector-java-5.1.32.jar
+          name: com-es-mysql-lib
+        ports:
+        - containerPort: 807
+        readinessProbe:
+          tcpSocket:
+            port: 807
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 807
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: com-es-cache
+        configMap:
+          name: cache.properties
+      - name: com-es-catalina
+        hostPath:
+          path: /data/project/paas/java/com/com-es/catalina.sh
+      - name: com-es-config
+        configMap:
+          name: com-es.properties
+      - name: com-es-search
+        configMap:
+          name: search.properties
+      - name: com-es-server
+        hostPath:
+          path: /data/project/paas/java/com/com-es/server.xml
+      - name: com-es-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: com-es-log
+        hostPath:
+          path: /log/paas/java/com-es/app/
+      - name: com-es-catalinalog
+        hostPath:
+          path: /log/paas/java/com-es/tomcat/
+      - name: com-es-mysql-lib
+        hostPath:
+          path: /data/project/paas/java/com/mysql-connector-java-5.1.32.jar
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-es
+spec:
+  ports:
+    - port: 807
+      protocol: TCP
+      nodePort: 3807
+  clusterIP: 10.68.21.7
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: com-es

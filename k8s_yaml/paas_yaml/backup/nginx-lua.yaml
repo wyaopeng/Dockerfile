@@ -1,0 +1,64 @@
+kind: DaemonSet
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: nginx-lua
+  labels:
+    app: nginx-lua
+spec:
+  selector:
+    matchLabels:
+      app: nginx-lua
+  template:
+    metadata:
+      labels:
+        app: nginx-lua
+    spec:
+      nodeSelector:
+        node: worker
+      containers:
+      - name: nginx-lua
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/nginx-lua-uat
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /usr/local/nginx/logs
+          name: nginx-lua-log
+        - mountPath: /usr/local/nginx/conf/vhosts
+          name: nginx-lua-conf
+        - mountPath: /usr/local/nginx/conf/nginx.conf
+          name: nginx-conf
+        - mountPath: /usr/local/src/nginx-1.14.0/install.sh
+          name: install
+        ports:
+        - containerPort: 80
+          hostPort: 80
+      volumes:
+      - name: nginx-lua-log
+        hostPath:
+          path: /data/project/nginx-lua/logs
+      - name: nginx-lua-conf
+        hostPath:
+          path: /data/project/nginx-lua/vhosts
+      - name: nginx-conf
+        hostPath:
+          path: /data/project/nginx-lua/nginx.conf
+      - name: install
+        hostPath:
+          path: /data/project/nginx-lua/install.sh
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-lua
+spec:
+  ports:
+    - port: 80
+      nodePort: 80
+      protocol: TCP
+  type: NodePort
+  clusterIP: 10.68.0.14
+  selector:
+    app: nginx-lua

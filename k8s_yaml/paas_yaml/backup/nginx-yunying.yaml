@@ -1,0 +1,51 @@
+kind: DaemonSet
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: nginx-yunying
+  labels:
+    app: nginx-yunying
+spec:
+  selector:
+    matchLabels:
+      app: nginx-yunying
+  template:
+    metadata:
+      labels:
+        app: nginx-yunying
+    spec:
+      nodeSelector:
+        node: worker
+      containers:
+      - name: nginx-yunying
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/nginx-yunying
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /etc/nginx/conf.d/
+          name: nginx-yunying-conf
+        - mountPath: /etc/nginx/nginx.conf
+          name: nginx-yunying
+        ports:
+        - containerPort: 80
+      volumes:
+      - name: nginx-yunying-conf
+        hostPath:
+          path: /data/project/nginx-yunying/conf.d
+      - name: nginx-yunying
+        hostPath:
+          path: /data/project/nginx-yunying/nginx.conf
+      imagePullSecrets:
+      - name: regsecret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-yunying
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+  clusterIP: 10.68.0.19
+  selector:
+    app: nginx-yunying
+

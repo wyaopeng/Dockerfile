@@ -1,0 +1,74 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: controller-login2
+  labels:
+    app: controller-login2
+spec:
+  minReadySeconds: 60
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 
+  replicas: 1
+  selector:
+    matchLabels:
+      app: controller-login2
+  template:
+    metadata:
+      labels:
+        app: controller-login2
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node2: worker2
+      containers:
+      - name: controller-login2
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/controller-login
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: controller-login2-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: controller-login2-catalina
+        - mountPath: /data/laser/config/paas/controller-login/laser.properties
+          name: controller-login2-config
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: controller-login2-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: controller-login2-context
+        ports:
+        - containerPort: 8028
+      volumes:
+      - name: controller-login2-cache
+        configMap:
+          name: cache.properties
+      - name: controller-login2-catalina
+        hostPath:
+          path: /data/project/paas/java/com2/controller-login2/catalina.sh
+      - name: controller-login2-config
+        hostPath:
+          path: /data/project/paas/java/com2/controller-login2/laser.properties
+      - name: controller-login2-server
+        hostPath:
+          path: /data/project/paas/java/com2/controller-login2/server.xml
+      - name: controller-login2-context
+        hostPath:
+          path: /data/project/paas/java/com2/controller-login2/context.xml
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: controller-login2
+spec:
+  ports:
+    - port: 8028
+      protocol: TCP
+  clusterIP: 10.68.22.28
+  type: NodePort
+  selector:
+    app: controller-login2

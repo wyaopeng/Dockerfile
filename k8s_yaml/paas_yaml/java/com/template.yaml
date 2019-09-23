@@ -1,0 +1,100 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: templateapp
+  labels:
+    app: templateapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: templateapp
+  template:
+    metadata:
+      labels:
+        app: templateapp
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: templateapp
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/templateapp
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: templateapp-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: templateapp-catalina
+        - mountPath: /data/laser/config/paas/templateapp/laser.properties
+          name: templateapp-config
+          subPath: laser.properties
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: templateapp-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: templateapp-context
+        - mountPath: /data/logs/laser/paas/templateapp
+          name: templateapp-log
+        - mountPath: /usr/local/tomcat/logs
+          name: templateapp-catalinalog
+        - mountPath: /usr/local/tomcat/lib/mysql-connector-java-5.1.32.jar
+          name: templateapp-mysql-lib
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: templateapp-cache
+        configMap:
+          name: cache.properties
+      - name: templateapp-catalina
+        hostPath:
+          path: /data/project/paas/java/com/templateapp/catalina.sh
+      - name: templateapp-config
+        configMap:
+          name: templateapp.properties
+      - name: templateapp-server
+        hostPath:
+          path: /data/project/paas/java/com/templateapp/server.xml
+      - name: templateapp-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: templateapp-log
+        hostPath:
+          path: /log/paas/java/templateapp/app/
+      - name: templateapp-catalinalog
+        hostPath:
+          path: /log/paas/java/templateapp/tomcat/
+      - name: templateapp-mysql-lib
+        hostPath:
+          path: /data/project/paas/java/com/mysql-connector-java-5.1.32.jar
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: templateapp
+spec:
+  ports:
+    - port: 8080
+      protocol: TCP
+      nodePort: 38080
+  clusterIP: 10.68.21.appip
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: templateapp

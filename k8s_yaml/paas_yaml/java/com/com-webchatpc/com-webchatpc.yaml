@@ -1,0 +1,100 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-webchatpc
+  labels:
+    app: com-webchatpc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-webchatpc
+  template:
+    metadata:
+      labels:
+        app: com-webchatpc
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: com-webchatpc
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-webchatpc
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-webchatpc-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-webchatpc-catalina
+        - mountPath: /data/laser/config/paas/com-webchatpc/laser.properties
+          name: com-webchatpc-config
+          subPath: laser.properties
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-webchatpc-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-webchatpc-context
+        - mountPath: /data/logs/laser/paas/com-webchatpc
+          name: com-webchatpc-log
+        - mountPath: /usr/local/tomcat/logs
+          name: com-webchatpc-catalinalog
+        - mountPath: /usr/local/tomcat/lib/mysql-connector-java-5.1.32.jar
+          name: com-webchatpc-mysql-lib
+        ports:
+        - containerPort: 8023
+        readinessProbe:
+          tcpSocket:
+            port: 8023
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 8023
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: com-webchatpc-cache
+        configMap:
+          name: cache.properties
+      - name: com-webchatpc-catalina
+        hostPath:
+          path: /data/project/paas/java/com/com-webchatpc/catalina.sh
+      - name: com-webchatpc-config
+        configMap:
+          name: com-webchatpc.properties
+      - name: com-webchatpc-server
+        hostPath:
+          path: /data/project/paas/java/com/com-webchatpc/server.xml
+      - name: com-webchatpc-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: com-webchatpc-log
+        hostPath:
+          path: /log/paas/java/com-webchatpc/app/
+      - name: com-webchatpc-catalinalog
+        hostPath:
+          path: /log/paas/java/com-webchatpc/tomcat/
+      - name: com-webchatpc-mysql-lib
+        hostPath:
+          path: /data/project/paas/java/com/mysql-connector-java-5.1.32.jar
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-webchatpc
+spec:
+  ports:
+    - port: 8023
+      protocol: TCP
+      nodePort: 38023
+  clusterIP: 10.68.21.23
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: com-webchatpc

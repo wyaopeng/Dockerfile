@@ -1,0 +1,100 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: controller-contract
+  labels:
+    app: controller-contract
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: controller-contract
+  template:
+    metadata:
+      labels:
+        app: controller-contract
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: controller-contract
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/controller-contract
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: controller-contract-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: controller-contract-catalina
+        - mountPath: /data/laser/config/paas/controller-contract/laser.properties
+          name: controller-contract-config
+          subPath: laser.properties
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: controller-contract-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: controller-contract-context
+        - mountPath: /data/logs/laser/paas/controller-contract
+          name: controller-contract-log
+        - mountPath: /usr/local/tomcat/logs
+          name: controller-contract-catalinalog
+        - mountPath: /usr/local/tomcat/lib/mysql-connector-java-5.1.32.jar
+          name: controller-contract-mysql-lib
+        ports:
+        - containerPort: 8026
+        readinessProbe:
+          tcpSocket:
+            port: 8026
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 8026
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: controller-contract-cache
+        configMap:
+          name: cache.properties
+      - name: controller-contract-catalina
+        hostPath:
+          path: /data/project/paas/java/com/controller-contract/catalina.sh
+      - name: controller-contract-config
+        configMap:
+          name: controller-contract.properties
+      - name: controller-contract-server
+        hostPath:
+          path: /data/project/paas/java/com/controller-contract/server.xml
+      - name: controller-contract-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: controller-contract-log
+        hostPath:
+          path: /log/paas/java/controller-contract/app/
+      - name: controller-contract-catalinalog
+        hostPath:
+          path: /log/paas/java/controller-contract/tomcat/
+      - name: controller-contract-mysql-lib
+        hostPath:
+          path: /data/project/paas/java/com/mysql-connector-java-5.1.32.jar
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: controller-contract
+spec:
+  ports:
+    - port: 8026
+      protocol: TCP
+      nodePort: 38026
+  clusterIP: 10.68.21.26
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: controller-contract

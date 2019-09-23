@@ -1,0 +1,100 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+
+metadata:
+  name: com-er
+  labels:
+    app: com-er
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com-er
+  template:
+    metadata:
+      labels:
+        app: com-er
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node3: worker3
+      containers:
+      - name: com-er
+        image: registry.cn-shanghai.aliyuncs.com/qianjian/com-er
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /data/laser/config/paas/laser/
+          name: com-er-cache
+        - mountPath: /usr/local/tomcat/bin/catalina.sh
+          name: com-er-catalina
+        - mountPath: /data/laser/config/paas/com-er/laser.properties
+          name: com-er-config
+          subPath: laser.properties
+        - mountPath: /usr/local/tomcat/conf/server.xml
+          name: com-er-server
+        - mountPath: /usr/local/tomcat/conf/context.xml
+          name: com-er-context
+        - mountPath: /data/logs/laser/paas/com-er
+          name: com-er-log
+        - mountPath: /usr/local/tomcat/logs
+          name: com-er-catalinalog
+        - mountPath: /usr/local/tomcat/lib/mysql-connector-java-5.1.32.jar
+          name: com-er-mysql-lib
+        ports:
+        - containerPort: 8029
+        readinessProbe:
+          tcpSocket:
+            port: 8029
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 8029
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: com-er-cache
+        configMap:
+          name: cache.properties
+      - name: com-er-catalina
+        hostPath:
+          path: /data/project/paas/java/com/com-er/catalina.sh
+      - name: com-er-config
+        configMap:
+          name: com-er.properties
+      - name: com-er-server
+        hostPath:
+          path: /data/project/paas/java/com/com-er/server.xml
+      - name: com-er-context
+        hostPath:
+          path: /data/project/paas/java/com/context.xml
+      - name: com-er-log
+        hostPath:
+          path: /log/paas/java/com-er/app/
+      - name: com-er-catalinalog
+        hostPath:
+          path: /log/paas/java/com-er/tomcat/
+      - name: com-er-mysql-lib
+        hostPath:
+          path: /data/project/paas/java/com/mysql-connector-java-5.1.32.jar
+      imagePullSecrets:
+      - name: regsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: com-er
+spec:
+  ports:
+    - port: 8029
+      protocol: TCP
+      nodePort: 38029
+  clusterIP: 10.68.21.29
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  type: NodePort
+  selector:
+    app: com-er
